@@ -18,11 +18,11 @@ export default function About() {
             <span style={{ color: "rgba(240,237,232,0.4)" }}>Born from ambition.</span>
           </h2>
           <p className="text-[15px] leading-relaxed opacity-55 mb-6">
-            We're a lean, design-led digital studio founded by Suju — a tech founder with deep roots
+            We are a lean, design-led digital studio founded by Suju — a tech founder with deep roots
             in South Asian textile manufacturing and a drive to build products that move the needle.
           </p>
           <p className="text-[15px] leading-relaxed opacity-55 mb-10">
-            We don't just build websites. We engineer revenue. Every project starts with your
+            We dont just build websites. We engineer revenue. Every project starts with your
             business goals and ends with something that pays for itself.
           </p>
           <a

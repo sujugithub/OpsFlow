@@ -1,13 +1,24 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import LiquidGlassOrb from "./LiquidGlassOrb";
 
 export default function Hero() {
   const taglineRef = useRef<HTMLDivElement>(null);
-  const orbRef = useRef<HTMLDivElement>(null);
-  const shineRef = useRef<HTMLDivElement>(null);
 
-  // Fade-in on mount
+  // HTML blob refs — controlled by JS for magnetic movement
+  const blob1Ref = useRef<HTMLDivElement>(null);
+  const blob2Ref = useRef<HTMLDivElement>(null);
+  const blob3Ref = useRef<HTMLDivElement>(null);
+
+  // Text refs for mask / clip effects
+  const enRef = useRef<HTMLHeadingElement>(null);
+  const jpRef = useRef<HTMLHeadingElement>(null);
+
+  // Shared mouse tracking — passed to Three.js canvas too
+  const mouseRef = useRef({ x: -1, y: -1 });
+
+  // Fade-in
   useEffect(() => {
     const el = taglineRef.current;
     if (!el) return;
@@ -17,40 +28,80 @@ export default function Hero() {
     }, 300);
   }, []);
 
-  // Liquid glass orb follows cursor with heavy lag
   useEffect(() => {
-    // Start at a visually interesting position over the text
-    let cx = window.innerWidth * 0.48;
-    let cy = window.innerHeight * 0.52;
-    let tx = cx, ty = cy;
-
+    mouseRef.current = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     const onMove = (e: MouseEvent) => {
-      tx = e.clientX;
-      ty = e.clientY;
+      mouseRef.current = { x: e.clientX, y: e.clientY };
     };
     window.addEventListener("mousemove", onMove);
 
-    let raf: number;
+    // Per-blob lerped magnetic offsets
+    const m1 = { x: 0, y: 0 };
+    const m2 = { x: 0, y: 0 };
+    const m3 = { x: 0, y: 0 };
+
+    // Orb pixel position (same 0.1 lerp as Three.js sphere)
+    const orb = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
     let t = 0;
+    let raf: number;
 
     const tick = () => {
-      // Slow lerp — floaty, liquid feel
-      cx += (tx - cx) * 0.035;
-      cy += (ty - cy) * 0.035;
+      const W = window.innerWidth;
+      const H = window.innerHeight;
+      const mx = mouseRef.current.x < 0 ? W / 2 : mouseRef.current.x;
+      const my = mouseRef.current.y < 0 ? H / 2 : mouseRef.current.y;
       t += 0.008;
 
-      // Subtle autonomous drift (breathing)
-      const driftX = Math.sin(t * 1.1) * 6;
-      const driftY = Math.cos(t * 0.7) * 4;
+      // Lerp orb pixel position — mirrors Three.js 0.1 factor
+      orb.x += (mx - orb.x) * 0.1;
+      orb.y += (my - orb.y) * 0.1;
 
-      if (orbRef.current) {
-        orbRef.current.style.transform = `translate(${cx + driftX}px, ${cy + driftY}px) translate(-50%, -50%)`;
+      // ── Magnetic HTML blobs ──────────────────────────────────────
+      // normX/Y: -0.5 → 0.5 (cursor position relative to screen centre)
+      const normX = (mx - W / 2) / W;
+      const normY = (my - H / 2) / H;
+
+      // Each blob lerps toward cursor with unique pull range + organic drift
+      const b1tx = normX * 210 + Math.sin(t * 0.38) * 14;
+      const b1ty = normY * 160 + Math.cos(t * 0.29) * 11;
+      m1.x += (b1tx - m1.x) * 0.035;
+      m1.y += (b1ty - m1.y) * 0.035;
+
+      const b2tx = normX * 250 + Math.sin(t * 0.44 + 1.0) * 11;
+      const b2ty = normY * 190 + Math.cos(t * 0.33 + 2.0) * 9;
+      m2.x += (b2tx - m2.x) * 0.028;
+      m2.y += (b2ty - m2.y) * 0.028;
+
+      const b3tx = normX * 175 + Math.sin(t * 0.51 + 2.1) * 17;
+      const b3ty = normY * 135 + Math.cos(t * 0.40 + 0.8) * 13;
+      m3.x += (b3tx - m3.x) * 0.042;
+      m3.y += (b3ty - m3.y) * 0.042;
+
+      if (blob1Ref.current) blob1Ref.current.style.transform = `translate3d(${m1.x}px,${m1.y}px,0)`;
+      if (blob2Ref.current) blob2Ref.current.style.transform = `translate3d(${m2.x}px,${m2.y}px,0)`;
+      if (blob3Ref.current) blob3Ref.current.style.transform = `translate3d(${m3.x}px,${m3.y}px,0)`;
+
+      // ── Text effects — track the lerped orb pixel position ───────
+      // Radius formula matches the Three.js sphere: min(H,W) * 0.19
+      const orbR = Math.min(W, H) * 0.19;
+
+      // English: mask punches a transparent hole where the orb sits
+      if (enRef.current) {
+        const rect = enRef.current.getBoundingClientRect();
+        const lx = orb.x - rect.left;
+        const ly = orb.y - rect.top;
+        const mask = `radial-gradient(circle ${orbR}px at ${lx}px ${ly}px, transparent 72%, black 97%)`;
+        enRef.current.style.maskImage = mask;
+        enRef.current.style.setProperty("-webkit-mask-image", mask);
       }
 
-      // Slowly rotate the shine highlight
-      if (shineRef.current) {
-        const angle = Math.sin(t * 0.5) * 12;
-        shineRef.current.style.transform = `rotate(${angle}deg)`;
+      // Japanese: clip-path reveals text only inside the orb circle
+      if (jpRef.current) {
+        const rect = jpRef.current.getBoundingClientRect();
+        const lx = orb.x - rect.left;
+        const ly = orb.y - rect.top;
+        jpRef.current.style.clipPath = `circle(${orbR}px at ${lx}px ${ly}px)`;
       }
 
       raf = requestAnimationFrame(tick);
@@ -63,44 +114,21 @@ export default function Hero() {
     };
   }, []);
 
+  const h1Class =
+    "text-[clamp(3.5rem,9vw,10rem)] font-light leading-[0.92] tracking-[-0.03em] mb-8";
+
   return (
-    <section className="relative min-h-screen mesh flex flex-col justify-end pb-20 px-8 overflow-hidden">
+    <section
+      className="relative min-h-screen flex flex-col justify-end pb-20 px-8 overflow-hidden"
+      style={{ background: "#05000e" }}
+    >
+      {/* ── Dark overlay for readability ── */}
+      <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 50%, rgba(0,0,0,0.2) 100%)" }} />
 
-      {/* ── SVG filter definitions ── */}
-      <svg width="0" height="0" style={{ position: "absolute" }}>
-        <defs>
-          {/* Liquid glass displacement */}
-          <filter id="liquid-glass" x="-30%" y="-30%" width="160%" height="160%" colorInterpolationFilters="sRGB">
-            <feTurbulence
-              type="turbulence"
-              baseFrequency="0.018 0.014"
-              numOctaves="3"
-              seed="8"
-              result="noise"
-            />
-            <feDisplacementMap
-              in="SourceGraphic"
-              in2="noise"
-              scale="14"
-              xChannelSelector="R"
-              yChannelSelector="G"
-              result="displaced"
-            />
-          </filter>
-
-          {/* Chromatic aberration — red channel shifted */}
-          <filter id="ca-filter" x="-10%" y="-10%" width="120%" height="120%" colorInterpolationFilters="sRGB">
-            <feOffset in="SourceGraphic" dx="3" dy="1" result="r" />
-            <feOffset in="SourceGraphic" dx="-2" dy="-1" result="b" />
-            <feBlend in="r" in2="SourceGraphic" mode="screen" result="rb" />
-            <feBlend in="rb" in2="b" mode="screen" />
-          </filter>
-        </defs>
-      </svg>
 
       {/* ── Noise overlay ── */}
       <div
-        className="absolute inset-0 opacity-[0.035] pointer-events-none"
+        className="absolute inset-0 opacity-[0.04] pointer-events-none"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
           backgroundRepeat: "repeat",
@@ -111,34 +139,78 @@ export default function Hero() {
       {/* ── Metadata row ── */}
       <div className="absolute top-28 left-8 right-8 flex justify-between items-start max-w-[1400px] mx-auto w-full pointer-events-none">
         <div className="text-[11px] tracking-[0.2em] uppercase opacity-35">
-          <span>Sydney, Australia</span><br />
+          <span>Sydney, Australia</span>
+          <br />
           <span>Est. 2025</span>
         </div>
         <div className="text-[11px] tracking-[0.2em] uppercase opacity-35 text-right">
-          <span>Web & Mobile Studio</span><br />
+          <span>Web & Mobile Studio</span>
+          <br />
           <span>AI-Powered Tools</span>
         </div>
       </div>
 
-      {/* ── Main headline ── */}
-      <div className="relative z-10 max-w-[1400px] mx-auto w-full">
+      {/*
+        ── Three.js liquid-glass orb ── (z-index 20)
+        Transparent canvas: outside orb = HTML shows through.
+        Inside orb = glass refracts the vivid 3D blobs.
+      */}
+      <LiquidGlassOrb mouseRef={mouseRef} />
+
+      {/* ── Text content — sits ABOVE the canvas ── (z-index 30) */}
+      <div className="relative max-w-[1400px] mx-auto w-full" style={{ zIndex: 30 }}>
         <div
           ref={taglineRef}
           style={{
             opacity: 0,
             transform: "translateY(28px)",
-            transition: "opacity 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+            transition:
+              "opacity 1.2s cubic-bezier(0.25,0.46,0.45,0.94), transform 1.2s cubic-bezier(0.25,0.46,0.45,0.94)",
           }}
         >
-          <h1 className="text-[clamp(3.5rem,9vw,10rem)] font-light leading-[0.92] tracking-[-0.03em] mb-8">
-            We build digital
-            <br />
-            <em className="not-italic" style={{ color: "rgba(240,237,232,0.42)" }}>
-              that makes
-            </em>
-            <br />
-            you money
-          </h1>
+          {/* Stacked headlines — English masked + Japanese revealed */}
+          <div style={{ position: "relative" }}>
+            {/* English: mask removes text where the orb sits, so glass shows through */}
+            <h1 ref={enRef} className={h1Class}>
+              We build digital
+              <br />
+              <em className="not-italic" style={{ color: "rgba(240,237,232,0.42)" }}>
+                that makes
+              </em>
+              <br />
+              you money
+            </h1>
+
+            {/*
+              Japanese: absolutely stacked on top, starts fully clipped (circle 0px).
+              JS expands the clip-path circle to match the orb position.
+              textShadow gives it a glowing iridescent feel, as if lit by the glass.
+            */}
+            <h1
+              ref={jpRef}
+              className={h1Class}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                margin: 0,
+                clipPath: "circle(0px at 50% 50%)",
+                color: "#f5f0ff",
+                pointerEvents: "none",
+                textShadow:
+                  "0 0 30px rgba(180,120,255,0.55), 0 0 8px rgba(255,255,255,0.35)",
+              }}
+            >
+              デジタルを
+              <br />
+              <em className="not-italic" style={{ color: "rgba(220,200,255,0.5)" }}>
+                構築して
+              </em>
+              <br />
+              収益を生む
+            </h1>
+          </div>
 
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-8">
             <p className="text-[15px] leading-relaxed opacity-50 max-w-sm">
@@ -147,7 +219,10 @@ export default function Hero() {
               We turn ideas into products that grow revenue.
             </p>
             <div className="flex items-center gap-6">
-              <a href="#work" className="group flex items-center gap-3 text-[13px] tracking-[0.1em] uppercase">
+              <a
+                href="#work"
+                className="group flex items-center gap-3 text-[13px] tracking-[0.1em] uppercase"
+              >
                 <span className="hlink">View our work</span>
                 <span className="w-8 h-[1px] bg-current opacity-40 group-hover:w-16 group-hover:opacity-100 transition-all duration-500" />
               </a>
@@ -166,84 +241,8 @@ export default function Hero() {
           <span className="text-[10px] tracking-[0.25em] uppercase">Scroll</span>
         </div>
       </div>
-
-      {/* ── LIQUID GLASS ORB ── */}
-      <div
-        ref={orbRef}
-        className="absolute top-0 left-0 pointer-events-none"
-        style={{ zIndex: 20, willChange: "transform" }}
-      >
-        {/* Layer 1: Backdrop capture + liquid displacement */}
-        <div
-          style={{
-            width: 290,
-            height: 290,
-            borderRadius: "50%",
-            overflow: "hidden",
-            backdropFilter: "blur(0.8px) brightness(1.18) saturate(1.3) contrast(1.05)",
-            WebkitBackdropFilter: "blur(0.8px) brightness(1.18) saturate(1.3) contrast(1.05)",
-            filter: "url(#liquid-glass)",
-            position: "relative",
-          }}
-        >
-          {/* Inner tint — slightly lightens the orb interior */}
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              borderRadius: "50%",
-              background:
-                "radial-gradient(circle at 50% 50%, rgba(255,255,255,0.04) 0%, transparent 70%)",
-            }}
-          />
-        </div>
-
-        {/* Layer 2: Glass shine highlights */}
-        <div
-          ref={shineRef}
-          style={{
-            position: "absolute",
-            inset: 0,
-            borderRadius: "50%",
-            pointerEvents: "none",
-            background: `
-              radial-gradient(ellipse 55% 35% at 36% 28%, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.10) 40%, transparent 70%),
-              radial-gradient(ellipse 30% 18% at 62% 72%, rgba(255,255,255,0.10) 0%, transparent 60%)
-            `,
-          }}
-        />
-
-        {/* Layer 3: Chromatic aberration border */}
-        <div
-          style={{
-            position: "absolute",
-            inset: -1,
-            borderRadius: "50%",
-            boxShadow: `
-              0 0 0 1px rgba(255, 55, 0, 0.55),
-              0 0 0 2.5px rgba(30, 60, 255, 0.30),
-              0 0 0 4px rgba(0, 200, 255, 0.10),
-              inset 0 0 0 1px rgba(255, 55, 0, 0.20),
-              inset 0 0 0 2px rgba(30, 60, 255, 0.12),
-              0 8px 60px rgba(0, 0, 0, 0.35),
-              0 2px 20px rgba(255, 55, 0, 0.08)
-            `,
-            filter: "url(#ca-filter)",
-          }}
-        />
-
-        {/* Layer 4: Bottom edge shadow (depth) */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            borderRadius: "50%",
-            background:
-              "radial-gradient(ellipse 70% 30% at 50% 88%, rgba(0,0,0,0.22) 0%, transparent 70%)",
-            pointerEvents: "none",
-          }}
-        />
-      </div>
     </section>
   );
 }
+
+
