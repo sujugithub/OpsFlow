@@ -170,33 +170,50 @@
 
 /* ─── Liquid Glass Menu ───────────────────────────── */
 
-/* Expanded panel — Apple-style liquid glass */
+/* Expanded panel — Apple liquid glass
+   Key: NO overflow:hidden (breaks backdrop-filter).
+   Use clip-path for shape clipping instead.           */
 .nav-menu-panel {
   position: relative;
   border-radius: 28px;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(48px) saturate(180%) brightness(1.08);
-  -webkit-backdrop-filter: blur(48px) saturate(180%) brightness(1.08);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  /* clip-path preserves rounding without killing blur */
+  clip-path: inset(0 round 28px);
+  background: rgba(12, 12, 20, 0.55);
+  backdrop-filter: blur(40px) saturate(160%) brightness(1.1);
+  -webkit-backdrop-filter: blur(40px) saturate(160%) brightness(1.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow:
-    0 2px 0 rgba(255, 255, 255, 0.12) inset,
-    0 -1px 0 rgba(255, 255, 255, 0.06) inset,
-    0 24px 64px rgba(0, 0, 0, 0.55),
-    0 4px 16px rgba(0, 0, 0, 0.35);
+    0 2px 0 rgba(255, 255, 255, 0.14) inset,
+    0 32px 80px rgba(0, 0, 0, 0.6),
+    0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
-/* Specular highlight strip along the top edge */
+/* Top-left specular shine — the Apple liquid glass signature */
 .nav-menu-panel::before {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: inherit;
+  border-radius: 28px;
   background: linear-gradient(
-    160deg,
-    rgba(255, 255, 255, 0.18) 0%,
-    rgba(255, 255, 255, 0.04) 35%,
-    transparent 60%
+    135deg,
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(255, 255, 255, 0.06) 30%,
+    transparent 55%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Bottom-right inner edge catch-light */
+.nav-menu-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 28px;
+  background: linear-gradient(
+    315deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    transparent 40%
   );
   pointer-events: none;
   z-index: 1;
@@ -213,14 +230,14 @@
   overflow: hidden;
   cursor: pointer;
   z-index: 10;
-  background: rgba(255, 255, 255, 0.10);
-  backdrop-filter: blur(32px) saturate(180%);
-  -webkit-backdrop-filter: blur(32px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.20) inset,
-    0 8px 24px rgba(0, 0, 0, 0.40),
-    0 2px 8px rgba(0, 0, 0, 0.25);
+    0 1px 0 rgba(255, 255, 255, 0.30) inset,
+    0 -1px 0 rgba(0, 0, 0, 0.15) inset,
+    0 8px 28px rgba(0, 0, 0, 0.45);
 }
 
 /* Slider — two 40px els stacked vertically */
@@ -229,7 +246,7 @@
   width: 100%;
 }
 
-/* Both els are transparent — button glass provides the bg */
+/* Both els transparent — pill glass provides the bg */
 .nav-el {
   width: 100%;
   height: 40px;
@@ -240,17 +257,16 @@
 }
 
 .nav-el p {
-  color: rgba(255, 255, 255, 0.92);
+  color: rgba(255, 255, 255, 0.95);
   font-weight: 500;
 }
 
-/* "Close" el — slight warm tint */
 .nav-el:nth-of-type(2) {
-  background: rgba(255, 255, 255, 0.06);
+  background: transparent;
 }
 
 .nav-el:nth-of-type(2) p {
-  color: rgba(255, 255, 255, 0.92);
+  color: rgba(255, 255, 255, 0.95);
 }
 
 /* Perspective flip text */
