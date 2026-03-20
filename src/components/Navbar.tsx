@@ -1,96 +1,160 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Menu, X } from "lucide-react";
+import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 
-const links = [
-  { label: "Work", href: "#work" },
-  { label: "Services", href: "#services" },
-  { label: "About", href: "#about" },
-  { label: "Contact", href: "#contact" },
+/* ── Data ──────────────────────────────────────────────────────── */
+const navLinks = [
+  { title: "Work",     href: "#work" },
+  { title: "Services", href: "#services" },
+  { title: "About",    href: "#about" },
+  { title: "Contact",  href: "#contact" },
 ];
 
-export default function Navbar() {
-  const [scrolled, setScrolled] = useState(false);
-  const [open, setOpen] = useState(false);
+const footerLinks = [
+  { title: "Instagram", href: "#" },
+  { title: "LinkedIn",  href: "#" },
+  { title: "Twitter",   href: "#" },
+  { title: "GitHub",    href: "#" },
+];
 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+/* ── Easing ────────────────────────────────────────────────────── */
+const ease = [0.76, 0, 0.24, 1] as const;
+const easeIn = [0.215, 0.61, 0.355, 1] as const;
+
+/* ── Framer variants ───────────────────────────────────────────── */
+const menuVariants = {
+  open: {
+    width: "480px",
+    height: "650px",
+    top: "-25px",
+    right: "-25px",
+    transition: { duration: 0.75, type: "tween" as const, ease },
+  },
+  closed: {
+    width: "100px",
+    height: "40px",
+    top: "0px",
+    right: "0px",
+    transition: { duration: 0.75, delay: 0.35, type: "tween" as const, ease },
+  },
+};
+
+const perspectiveVariant = {
+  initial: { opacity: 0, rotateX: 90, translateY: 80, translateX: -20 },
+  enter: (i: number) => ({
+    opacity: 1, rotateX: 0, translateY: 0, translateX: 0,
+    transition: {
+      duration: 0.65,
+      delay: 0.5 + i * 0.1,
+      ease: easeIn,
+      opacity: { duration: 0.35 },
+    },
+  }),
+  exit: { opacity: 0, transition: { duration: 0.5, ease } },
+};
+
+const slideInVariant = {
+  initial: { opacity: 0, y: 20 },
+  enter: (i: number) => ({
+    opacity: 1, y: 0,
+    transition: { duration: 0.5, delay: 0.75 + i * 0.1, ease: easeIn },
+  }),
+  exit: { opacity: 0, transition: { duration: 0.5 } },
+};
+
+/* ── Nav panel ─────────────────────────────────────────────────── */
+function Nav({ close }: { close: () => void }) {
+  return (
+    <div className="nav-panel">
+      <div className="nav-panel-body">
+        {navLinks.map((link, i) => (
+          <div key={link.title} className="nav-link-container">
+            <motion.div
+              custom={i}
+              variants={perspectiveVariant}
+              initial="initial"
+              animate="enter"
+              exit="exit"
+            >
+              <a href={link.href} onClick={close} className="nav-link-item">
+                {link.title}
+              </a>
+            </motion.div>
+          </div>
+        ))}
+      </div>
+      <div className="nav-panel-footer">
+        {footerLinks.map((link, i) => (
+          <motion.a
+            key={link.title}
+            href={link.href}
+            custom={i}
+            variants={slideInVariant}
+            initial="initial"
+            animate="enter"
+            exit="exit"
+            className="nav-footer-link"
+          >
+            {link.title}
+          </motion.a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Navbar ────────────────────────────────────────────────────── */
+export default function Navbar() {
+  const [isActive, setIsActive] = useState(false);
 
   return (
     <>
-      <nav
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-          scrolled ? "py-4 backdrop-blur-md bg-[rgba(10,10,10,0.7)]" : "py-7"
-        }`}
-      >
-        <div className="max-w-[1400px] mx-auto px-8 flex items-center justify-between">
-          {/* Logo */}
-          <a href="#" className="text-[15px] tracking-[0.15em] uppercase font-medium hlink">
-            OpsFlow
-          </a>
-
-          {/* Desktop links */}
-          <ul className="hidden md:flex items-center gap-10">
-            {links.map((l) => (
-              <li key={l.label}>
-                <a
-                  href={l.href}
-                  className="text-[13px] tracking-[0.08em] uppercase opacity-70 hover:opacity-100 hlink transition-opacity duration-300"
-                >
-                  {l.label}
-                </a>
-              </li>
-            ))}
-          </ul>
-
-          {/* CTA */}
-          <a
-            href="#contact"
-            className="hidden md:inline-flex items-center gap-2 text-[13px] tracking-[0.08em] uppercase border border-[rgba(240,237,232,0.25)] hover:border-[rgba(240,237,232,0.7)] px-5 py-2.5 transition-all duration-300 rounded-full"
-          >
-            Start a project
-          </a>
-
-          {/* Mobile toggle */}
-          <button
-            className="md:hidden opacity-70 hover:opacity-100"
-            onClick={() => setOpen(!open)}
-          >
-            {open ? <X size={20} /> : <Menu size={20} />}
-          </button>
-        </div>
-      </nav>
-
-      {/* Mobile menu */}
-      <div
-        className={`fixed inset-0 z-40 bg-[#0a0a0a] flex flex-col justify-center px-8 transition-all duration-500 ${
-          open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-        }`}
-      >
-        <ul className="flex flex-col gap-8">
-          {links.map((l) => (
-            <li key={l.label}>
-              <a
-                href={l.href}
-                onClick={() => setOpen(false)}
-                className="text-5xl font-light tracking-tight"
-              >
-                {l.label}
-              </a>
-            </li>
-          ))}
-        </ul>
+      {/* Logo — top left */}
+      <div className="fixed top-0 left-0 z-50 px-8 py-7">
         <a
-          href="#contact"
-          onClick={() => setOpen(false)}
-          className="mt-16 text-sm tracking-widest uppercase opacity-60"
+          href="#"
+          className="text-[15px] tracking-[0.15em] uppercase font-medium hlink text-[var(--fg)]"
         >
-          Start a project →
+          OpsFlow
         </a>
+      </div>
+
+      {/* Expanding menu — top right */}
+      <div style={{ position: "fixed", top: "25px", right: "25px", zIndex: 50 }}>
+        {/* Panel */}
+        <motion.div
+          className="nav-menu-panel"
+          variants={menuVariants}
+          animate={isActive ? "open" : "closed"}
+          initial="closed"
+        >
+          <AnimatePresence>
+            {isActive && <Nav close={() => setIsActive(false)} />}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Toggle button */}
+        <div className="nav-btn" onClick={() => setIsActive(!isActive)}>
+          <motion.div
+            className="nav-slider"
+            animate={{ y: isActive ? -40 : 0 }}
+            transition={{ duration: 0.5, type: "tween", ease }}
+          >
+            <div className="nav-el">
+              <div className="perspective-text">
+                <p>Menu</p>
+                <p>Menu</p>
+              </div>
+            </div>
+            <div className="nav-el">
+              <div className="perspective-text">
+                <p>Close</p>
+                <p>Close</p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
       </div>
     </>
   );
