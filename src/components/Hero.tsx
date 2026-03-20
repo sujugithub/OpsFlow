@@ -85,18 +85,21 @@ export default function Hero() {
       // ── Text effects — track the lerped orb pixel position ───────
       // Radius formula matches the Three.js sphere: min(H,W) * 0.19
       const orbR = Math.min(W, H) * 0.19;
+      // maskR is 2% larger than the sphere to absorb any sub-pixel edge leakage
+      const maskR = orbR * 1.02;
 
-      // English: mask punches a transparent hole where the orb sits
+      // English: hard circular hole — text invisible inside, fully visible outside
       if (enRef.current) {
         const rect = enRef.current.getBoundingClientRect();
         const lx = orb.x - rect.left;
         const ly = orb.y - rect.top;
-        const mask = `radial-gradient(circle ${orbR}px at ${lx}px ${ly}px, transparent 72%, black 97%)`;
+        // Hard stop: transparent right up to the edge, then immediately opaque
+        const mask = `radial-gradient(circle ${maskR}px at ${lx}px ${ly}px, transparent 0% 97%, black 98%)`;
         enRef.current.style.maskImage = mask;
         enRef.current.style.setProperty("-webkit-mask-image", mask);
       }
 
-      // Japanese: clip-path reveals text only inside the orb circle
+      // Japanese: clip-path reveals text only inside the orb circle (perfect circle)
       if (jpRef.current) {
         const rect = jpRef.current.getBoundingClientRect();
         const lx = orb.x - rect.left;
@@ -120,7 +123,12 @@ export default function Hero() {
   return (
     <section
       className="relative min-h-screen flex flex-col justify-end pb-20 px-8 overflow-hidden"
-      style={{ background: "#05000e" }}
+      style={{
+        background: "#05000e",
+        backgroundImage: "url('/hero-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
     >
       {/* ── Dark overlay for readability ── */}
       <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 50%, rgba(0,0,0,0.2) 100%)" }} />
